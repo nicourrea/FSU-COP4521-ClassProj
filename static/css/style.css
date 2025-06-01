@@ -1,0 +1,82 @@
+.title-container {
+    background-color: #9AC0CD;
+    padding: 40px 60px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px #2f4f5a;
+    text-align: center;
+}
+
+.title-container h1 {
+    font-size: 3rem;
+    margin: 0;
+    color: #333;
+}
+
+.title-container p {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.25rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+.menu-bar {
+    background-color: #9AC0CD;
+    overflow: hidden;
+    box-shadow: 0 4px 10px #2f4f5a;
+}
+
+.dropdown {
+    float: left;
+    overflow: hidden;
+    background-color: #236B8E;
+    box-shadow: 0 4px 10px #2f4f5a;
+}
+
+/* Dropdown button styling */
+.dropdown .dropbtn {
+    font-size: 16px;
+    border: none;
+    outline: none;
+    padding: 14px 16px;
+    background-color: inherit;
+    cursor: pointer;
+}
+
+/* Dropdown content hidden by default */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #9AC0CD;
+    min-width: 160px;
+    border: 0.5px solid black;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+    border: 0.5px solid black; /* Adds a border to each menu item */
+}
+
+/* Dropdown items */
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+}
+
+/* Hover effect for dropdown items */
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+/* Display dropdown on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
