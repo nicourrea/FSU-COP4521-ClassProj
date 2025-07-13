@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register | Family Financial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fade-in-up {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+      animation: fade-in-up 0.8s ease-out both;
+    }
+  </style>
+  <script>
+    function toggleFamilyIDField() {
+      const role = document.getElementById("role").value;
+      const childField = document.getElementById("family_id_container");
+      const parentChoice = document.getElementById("parent_choice");
+      const parentInput = document.getElementById("existing_family_id_container");
+
+      if (role === "child") {
+        childField.style.display = "block";
+        parentChoice.style.display = "none";
+        parentInput.style.display = "none";
+      } else if (role === "parent") {
+        childField.style.display = "none";
+        parentChoice.style.display = "block";
+        const choice = document.querySelector('input[name="parent_option"]:checked');
+        parentInput.style.display = (choice && choice.value === "join") ? "block" : "none";
+      }
+    }
+
+    function handleParentOptionChange() {
+      const choice = document.querySelector('input[name="parent_option"]:checked');
+      const parentInput = document.getElementById("existing_family_id_container");
+      parentInput.style.display = (choice && choice.value === "join") ? "block" : "none";
+    }
+
+    window.onload = function () {
+      toggleFamilyIDField();
+      document.querySelectorAll('input[name="parent_option"]').forEach(el => {
+        el.addEventListener('change', handleParentOptionChange);
+      });
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-100 to-white flex items-center justify-center font-['Nunito'] px-4">
+
+  <div class="w-full max-w-lg bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-xl animate-fade-in-up">
+    
+    <h2 class="text-3xl font-bold text-green-700 text-center mb-2">Register</h2>
+    <p class="text-sm text-gray-600 text-center mb-6">Create your account to start managing your family's finances</p>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul class="mb-4">
+        {% for msg in messages %}
+          <li class="text-sm font-medium text-center {% if 'successful' in msg|lower %}text-green-600{% else %}text-red-600{% endif %}">
+            {{ msg }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="space-y-4">
+      <!-- Username -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
+        <input type="text" name="username" required
+               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-400 outline-none" />
+      </div>
+
+      <!-- Password -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+        <input type="password" name="password" required
+               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-400 outline-none" />
+      </div>
+
+      <!-- Role -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Role</label>
+        <select name="role" id="role" onchange="toggleFamilyIDField()"
+                class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-400 outline-none">
+          <option value="parent">Parent</option>
+          <option value="child">Child</option>
+        </select>
+      </div>
+
+      <!-- If child -->
+      <div id="family_id_container" style="display: none;">
+        <label class="block text-sm font-semibold text-gray-700 mt-2 mb-1">Family ID (provided by parent)</label>
+        <input type="number" name="family_id" min="1000" max="9999"
+               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-400 outline-none" />
+      </div>
+
+      <!-- If parent -->
+      <div id="parent_choice" style="display: none;" class="text-sm text-gray-700">
+        <p class="font-semibold mt-2 mb-1">As a parent, would you like to:</p>
+        <label class="inline-flex items-center mr-4">
+          <input type="radio" name="parent_option" value="new" checked class="mr-1" /> Create a new family ID
+        </label>
+        <label class="inline-flex items-center">
+          <input type="radio" name="parent_option" value="join" class="mr-1" /> Join an existing family ID
+        </label>
+      </div>
+
+      <div id="existing_family_id_container" style="display: none;">
+        <label class="block text-sm font-semibold text-gray-700 mt-2 mb-1">Enter existing Family ID</label>
+        <input type="number" name="existing_family_id" min="1000" max="9999"
+               class="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-400 outline-none" />
+      </div>
+
+      <button type="submit"
+              class="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md transition">
+        Register
+      </button>
+    </form>
+
+    <p class="mt-6 text-sm text-gray-600 text-center">
+      Already have an account?
+      <a href="/login" class="text-green-600 hover:underline font-medium">Log in</a>
+    </p>
+  </div>
+
+</body>
+</html>
