@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload Budget File</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-green-50 font-['Nunito'] min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-green-100 text-green-900 h-screen p-6 sticky top-0 shadow-md flex flex-col">
+    <a href="/home" class="text-2xl font-extrabold mb-8 hover:text-green-800 transition">FinPlanner</a>
+
+    <a href="/open_budget" class="mb-2 hover:bg-green-200 p-2 rounded transition">Budget</a>
+    <!-- Budget subtabs hidden -->
+
+    <a href="/open_expenses" class="mb-2 hover:bg-green-200 p-2 rounded transition">Expenses</a>
+    {% if session.get('role') == 'parent' %}
+    <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+      <a href="{{ url_for('add_expense') }}" class="hover:bg-green-200 p-2 rounded">↳ Add Expense</a>
+      <a href="{{ url_for('open_file') }}" class="font-bold bg-green-200 shadow-inner p-2 rounded">↳ Upload Expense File</a>
+    </div>
+    {% elif session.get('role') == 'child' %}
+    <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+      <a href="{{ url_for('submit_expense') }}" class="hover:bg-green-200 p-2 rounded">↳ Submit Expense</a>
+    </div>
+    {% endif %}
+
+    <a href="/accounts" class="mb-2 hover:bg-green-200 p-2 rounded transition">Accounts</a>
+    <a href="/logout" class="mt-auto hover:bg-green-200 p-2 rounded transition">Logout</a>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col items-center justify-center p-10">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-green-700">Upload a Budget File</h1>
+      <p class="text-gray-700 mt-2">Select a CSV file to upload expenses by category.</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="text-center text-red-600 mb-4">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <!-- File Upload Form -->
+    <form id="uploadForm" action="{{ url_for('open_file') }}" method="POST" enctype="multipart/form-data" class="max-w-xl w-full bg-white p-8 rounded shadow">
+      <div class="mb-4">
+        <label for="file" class="block text-gray-700 font-semibold mb-2">Choose a CSV file:</label>
+        <input type="file" name="file" id="file" accept=".csv" required class="w-full border border-gray-300 rounded px-3 py-2">
+      </div>
+      <button type="submit" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-6 rounded">Upload</button>
+    </form>
+
+    {% if message %}
+      <p class="text-center text-green-600 mt-6">{{ message }}</p>
+    {% endif %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+</body>
+</html>
