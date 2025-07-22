@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Family Budget Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-white font-['Nunito'] flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-green-100 text-green-800 h-screen p-6 sticky top-0 shadow-md flex flex-col">
+    <h2 class="text-2xl font-extrabold mb-8 drop-shadow-sm">FinPlanner</h2>
+
+    {% if session.get('username') %}
+      <a href="/open_budget" class="mb-3 hover:bg-green-200 p-2 rounded transition-all">Budget</a>
+      <a href="/open_expenses" class="mb-3 hover:bg-green-200 p-2 rounded transition-all">Expenses</a>
+      <a href="/accounts" class="mb-3 hover:bg-green-200 p-2 rounded transition-all">Accounts</a>
+      <a href="/logout" class="mt-auto hover:bg-green-200 p-2 rounded transition-all">Logout</a>
+    {% else %}
+      <a href="/login" class="mb-3 hover:bg-green-200 p-2 rounded transition-all">Login</a>
+      <a href="/register" class="hover:bg-green-200 p-2 rounded transition-all">Register</a>
+    {% endif %}
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-10 bg-white">
+    <div class="mb-8">
+      <h1 class="text-4xl font-extrabold text-green-700 drop-shadow-sm">Welcome to Your Family Budget!</h1>
+
+      {% if session.get('username') %}
+      <div class="mt-4 text-gray-700 space-y-1">
+        <p><strong>User:</strong> {{ session['username'] }}</p>
+        <p><strong>Role:</strong> {{ session['role']|capitalize }}</p>
+        <p><strong>Family ID:</strong> {{ session['family_id'] }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Dashboard Buttons -->
+    <div class="flex flex-wrap gap-4 mb-12">
+      <a href="/open_expenses"
+         class="bg-green-800 text-white px-6 py-3 rounded-lg shadow hover:bg-green-900 transition-all">
+         View Family Spending
+      </a>
+
+      {% if session.get('role') == 'parent' %}
+      <a href="/create_table"
+         class="bg-green-800 text-white px-6 py-3 rounded-lg shadow hover:bg-green-900 transition-all">
+         Create New Budget
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Cards Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white shadow-md p-6 rounded-xl">
+        <h3 class="text-xl font-semibold text-green-700 mb-2">Overview</h3>
+        <p class="text-gray-700">Track your budget and expenses in one place.</p>
+      </div>
+
+      <div class="bg-white shadow-md p-6 rounded-xl">
+        <h3 class="text-xl font-semibold text-green-700 mb-2">Inflow vs. Outflow</h3>
+        <div class="h-24 flex items-center justify-center text-gray-400">[ Graph Placeholder ]</div>
+      </div>
+
+      <div class="bg-white shadow-md p-6 rounded-xl">
+        <h3 class="text-xl font-semibold text-green-700 mb-2">Quick Tips</h3>
+        <p class="text-gray-700">Remember to review your expenses weekly!</p>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

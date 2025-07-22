@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Financial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fade-in-up {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+      animation: fade-in-up 0.8s ease-out both;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-100 to-white flex items-center justify-center font-['Nunito'] text-center px-4">
+
+  <div class="animate-fade-in-up">
+    <!-- Logo -->
+    <img src="/static/images/logo1.png" alt="Family Financial Logo"
+         class="w-[300px] md:w-[400px] mx-auto mb-6 drop-shadow-xl" />
+
+    <!-- Heading -->
+    <h1 class="text-4xl md:text-5xl font-extrabold text-green-700 mb-4">
+      Welcome to <span class="text-green-600">Family Financial</span>
+    </h1>
+
+    <!-- Tagline -->
+    <p class="text-gray-800 text-lg md:text-xl mb-4 max-w-xl mx-auto leading-snug">
+      Empower your family to spend smarter.<br>
+      Create shared budgets, track expenses, and create healthy financial habits.
+    </p>
+
+    <!-- Buttons -->
+    <div class="flex justify-center gap-4">
+      <a href="/login" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition">
+        Login
+      </a>
+      <a href="/register" class="px-6 py-3 border-2 border-green-600 text-green-700 hover:bg-green-100 font-semibold rounded-lg transition">
+        Register
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>

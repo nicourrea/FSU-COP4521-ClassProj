@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add New Expense</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-green-50 font-['Nunito'] min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-green-100 text-green-900 h-screen p-6 sticky top-0 shadow-md flex flex-col">
+    <a href="/home" class="text-2xl font-extrabold mb-8 hover:text-green-800 transition">FinPlanner</a>
+
+    <a href="/open_budget" class="mb-2 hover:bg-green-200 p-2 rounded transition">Budget</a>
+    <!-- Budget subtabs hidden on this page -->
+
+    <a href="/open_expenses" class="mb-2 hover:bg-green-200 p-2 rounded transition">Expenses</a>
+    {% if session.get('role') == 'parent' %}
+    <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+      <a href="{{ url_for('add_expense') }}" class="font-bold bg-green-200 shadow-inner p-2 rounded">↳ Add Expense</a>
+      <a href="{{ url_for('open_file') }}" class="hover:bg-green-200 p-2 rounded">↳ Upload Expense File</a>
+    </div>
+    {% elif session.get('role') == 'child' %}
+    <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+      <a href="{{ url_for('submit_expense') }}" class="hover:bg-green-200 p-2 rounded">↳ Submit Expense</a>
+    </div>
+    {% endif %}
+
+    <a href="/accounts" class="mb-2 hover:bg-green-200 p-2 rounded transition">Accounts</a>
+    <a href="/logout" class="mt-auto hover:bg-green-200 p-2 rounded transition">Logout</a>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col items-center justify-center p-10">
+    <div class="bg-white shadow-lg rounded-lg w-full max-w-2xl p-8 border border-green-200">
+      <h1 class="text-3xl font-bold text-green-700 mb-6 text-center">Add New Expense</h1>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-4">
+            {% for message in messages %}
+              <p class="text-red-600 font-semibold text-center">{{ message }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="/add_expense" class="space-y-6">
+        <div>
+          <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
+          <input type="text" name="category" id="category" required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-500 shadow-sm" />
+        </div>
+
+        <div>
+          <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+          <input type="number" step="0.01" name="amount" id="amount" required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-500 shadow-sm" />
+        </div>
+
+        <div>
+          <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input type="date" name="date" id="date" required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-500 shadow-sm" />
+        </div>
+
+        <div>
+          <label for="expense_type" class="block text-sm font-medium text-gray-700 mb-1">Expense Type</label>
+          <input type="text" name="expense_type" id="expense_type" required
+                 placeholder="e.g. Rent, Publix, Netflix"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-500 shadow-sm" />
+        </div>
+
+        <div class="pt-4 text-center">
+          <button type="submit"
+                  class="bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-3 rounded-md transition shadow-md">
+            ➕ Add Expense
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+</body>
+</html>

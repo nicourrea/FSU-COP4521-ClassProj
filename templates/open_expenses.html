@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Expenses by Category</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-white font-['Nunito'] flex" data-role="{{ session.get('role') }}" data-page="expenses">
+
+<!-- Sidebar -->
+<aside class="w-64 bg-green-100 text-green-900 h-screen p-6 sticky top-0 shadow-md flex flex-col">
+  <a href="/home" class="text-2xl font-extrabold mb-8 hover:text-green-800 transition">FinPlanner</a>
+
+  <a href="/open_budget" class="mb-2 hover:bg-green-200 p-2 rounded transition">Budget</a>
+
+  <a href="/open_expenses" class="mb-2 font-extrabold bg-green-200 p-2 rounded shadow-inner">Expenses</a>
+  {% if session.get('role') == 'parent' %}
+  <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+    <a href="{{ url_for('add_expense') }}" class="hover:bg-green-200 p-2 rounded">↳ Add Expense</a>
+    <a href="{{ url_for('open_file') }}" class="hover:bg-green-200 p-2 rounded">↳ Upload Expense File</a>
+  </div>
+  {% elif session.get('role') == 'child' %}
+  <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+    <a href="{{ url_for('submit_expense') }}" class="hover:bg-green-200 p-2 rounded">↳ Submit Expense</a>
+  </div>
+  {% endif %}
+
+  <a href="/accounts" class="mb-2 hover:bg-green-200 p-2 rounded transition">Accounts</a>
+  <a href="/logout" class="mt-auto hover:bg-green-200 p-2 rounded transition">Logout</a>
+</aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-10">
+    <h1 class="text-4xl font-bold text-green-700 mb-2">Expense Categories</h1>
+    <p class="text-gray-700 mb-6">View and manage expenses by category. Use the tabs and filters to explore your spending.</p>
+
+    <!-- Tabs -->
+    <div class="flex flex-wrap gap-3 mb-6" id="tab-buttons-container">
+      {% for category in categories %}
+        <button class="tablink bg-green-50 hover:bg-green-200 text-green-900 font-medium py-2 px-4 rounded shadow-sm" data-tab="{{ category }}">
+          {{ category }}
+        </button>
+      {% endfor %}
+      {% if session.get('role') == 'parent' %}
+        <button class="tablink bg-green-50 hover:bg-green-200 text-green-900 font-medium py-2 px-4 rounded shadow-sm" data-tab="__child__">
+          Child Spending
+        </button>
+      {% endif %}
+    </div>
+
+    <!-- Tab Contents -->
+    <div id="tab-contents-container">
+      {% for category in categories %}
+      <div class="tab-content hidden" data-category="{{ category }}">
+        <h2 class="text-2xl font-bold text-green-700 mb-4">{{ category }} Expenses</h2>
+
+        {% if session.get('role') == 'parent' %}
+        <!-- Filters -->
+        <div class="flex gap-2 items-center mb-4">
+          <label class="font-medium">Filter:</label>
+          <select class="filter-col border border-gray-300 px-2 py-1 rounded">
+            <option value="amount">Amount</option>
+            <option value="expense_type">Expense Type</option>
+          </select>
+          <select class="filter-op border border-gray-300 px-2 py-1 rounded">
+            <option value="lt">&lt;</option>
+            <option value="gt">&gt;</option>
+            <option value="eq">=</option>
+          </select>
+          <input class="filter-val border border-gray-300 px-2 py-1 rounded" placeholder="Enter value" />
+          <button class="apply-filter-btn bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 transition">
+            Apply
+          </button>
+        </div>
+        {% endif %}
+
+        <div class="table-container mb-10"></div>
+      </div>
+      {% endfor %}
+
+      {% if session.get('role') == 'parent' %}
+      <div class="tab-content hidden" data-category="__child__">
+        <h2 class="text-2xl font-bold text-green-700 mb-4">Child Spending</h2>
+        <div class="table-container mb-10"></div>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script type="module">
+    import { setupTabs } from "{{ url_for('static', filename='js/tabs.js') }}";
+    import { setupFilters } from "{{ url_for('static', filename='js/get_cat_expense.js') }}";
+    import { trackTableChanges } from "{{ url_for('static', filename='js/track_changes.js') }}";
+    import { sendUpdate } from "{{ url_for('static', filename='js/save_changes.js') }}";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      setupTabs();
+
+      const userRole = document.body.dataset.role;
+      if (userRole === 'parent') {
+        setupFilters();
+        trackTableChanges();
+
+        const { buildExpenseTable } = await import("{{ url_for('static', filename='js/get_cat_expense.js') }}");
+
+        const saveBtn = document.createElement("button");
+        saveBtn.id = "saveChanges";
+        saveBtn.dataset.table = "expenses";
+        saveBtn.textContent = "Save All Edits";
+        saveBtn.className = "mx-auto mt-6 block bg-green-700 text-white px-6 py-3 rounded-lg shadow hover:bg-green-800 transition";
+        saveBtn.onclick = () => sendUpdate("expenses");
+        document.querySelector("main").appendChild(saveBtn);
+      } else {
+        // Even if child, still load tables (no editing or filters though)
+        const { buildExpenseTable } = await import("{{ url_for('static', filename='js/get_cat_expense.js') }}");
+        document.querySelectorAll('.tab-content').forEach(tab => {
+          const category = tab.dataset.category;
+          const container = tab.querySelector('.table-container');
+          buildExpenseTable(category, container);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
