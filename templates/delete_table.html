@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Delete Budget Category</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-white font-['Nunito'] flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-green-100 text-green-900 h-screen p-6 sticky top-0 shadow-md flex flex-col">
+    <a href="/home" class="text-2xl font-extrabold mb-8 hover:text-green-800 transition">FinPlanner</a>
+
+    {% if session.get('username') %}
+      <a href="/open_budget" class="mb-2 hover:bg-green-200 p-2 rounded transition">Budget</a>
+
+      {% if session.get('role') == 'parent' %}
+        <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+          <a href="/create_table" class="hover:bg-green-200 p-2 rounded">↳ Create Budget</a>
+          <a href="/delete_table" class="font-semibold bg-green-200 p-2 rounded shadow-inner">↳ Delete Budget</a>
+        </div>
+      {% endif %}
+
+      <a href="/open_expenses" class="mb-2 hover:bg-green-200 p-2 rounded transition">Expenses</a>
+      <a href="/accounts" class="mb-2 hover:bg-green-200 p-2 rounded transition">Accounts</a>
+      <a href="/logout" class="mt-auto hover:bg-green-200 p-2 rounded transition">Logout</a>
+    {% else %}
+      <a href="/login" class="mb-2 hover:bg-green-200 p-2 rounded">Login</a>
+      <a href="/register" class="mb-2 hover:bg-green-200 p-2 rounded">Register</a>
+    {% endif %}
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-10">
+    <h1 class="text-4xl font-bold text-green-700 mb-2">Delete Budget Category</h1>
+    <p class="text-gray-700 mb-8">Use this form to permanently remove a budget category.</p>
+
+    <!-- Deletion Form -->
+    <form action="{{ url_for('delete_table') }}" method="POST" class="max-w-md mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow">
+      <div class="mb-6">
+        <label for="department" class="block text-lg font-medium text-gray-700 mb-2">Select Category</label>
+        <select name="department" id="department" required
+                class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-green-400">
+          {% for category in departments %}
+            <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="text-center">
+        <button type="submit"
+                class="bg-red-600 text-white px-6 py-3 rounded-lg shadow hover:bg-red-700 transition">
+          Delete
+        </button>
+      </div>
+    </form>
+
+    {% if message %}
+      <p class="text-center text-green-600 font-semibold mt-6">{{ message }}</p>
+    {% endif %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create New Budget Category</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-white font-['Nunito'] flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-green-100 text-green-900 h-screen p-6 sticky top-0 shadow-md flex flex-col">
+    <!-- FinPlanner Home -->
+    <a href="/home" class="text-2xl font-extrabold mb-8 hover:text-green-800 transition">FinPlanner</a>
+
+    {% if session.get('username') %}
+      <!-- Budget Main Link -->
+      <a href="/open_budget" class="mb-2 hover:bg-green-200 p-2 rounded transition">Budget</a>
+
+      {% if session.get('role') == 'parent' %}
+        <!-- Highlight "Create Budget" if on create_table -->
+        <div class="ml-4 mb-2 flex flex-col gap-2 text-sm">
+          <a href="/create_table" class="font-semibold {% if request.path == '/create_table' %}bg-green-200 shadow-inner{% else %}hover:bg-green-200{% endif %} p-2 rounded">
+            ↳ Create Budget
+          </a>
+          {% if request.path == '/create_table' %}
+            <a href="/delete_table" class="hover:bg-green-200 p-2 rounded">↳ Delete Budget</a>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <a href="/open_expenses" class="mb-2 hover:bg-green-200 p-2 rounded transition">Expenses</a>
+      <a href="/accounts" class="mb-2 hover:bg-green-200 p-2 rounded transition">Accounts</a>
+      <a href="/logout" class="mt-auto hover:bg-green-200 p-2 rounded transition">Logout</a>
+    {% else %}
+      <a href="/login" class="mb-2 hover:bg-green-200 p-2 rounded">Login</a>
+      <a href="/register" class="mb-2 hover:bg-green-200 p-2 rounded">Register</a>
+    {% endif %}
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-10">
+    <!-- Title -->
+    <h1 class="text-4xl font-bold text-green-700 mb-2">Create New Budget Category</h1>
+    <p class="text-gray-700 mb-8">Add a new budget category and assign its initial amount.</p>
+
+    <!-- Form -->
+    <form method="POST" class="max-w-xl mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow">
+      <div class="mb-6">
+        <label for="category" class="block text-lg font-medium text-gray-700 mb-2">Category Name</label>
+        <input type="text" id="category" name="category" required
+               class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-green-400" />
+      </div>
+
+      <div class="mb-6">
+        <label for="budget" class="block text-lg font-medium text-gray-700 mb-2">Budget Amount ($)</label>
+        <input type="number" id="budget" name="budget" step="0.01" required
+               class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:border-green-400" />
+      </div>
+
+      <div class="text-center">
+        <input type="submit" value="Create Budget"
+               class="bg-green-700 text-white px-6 py-3 rounded-lg shadow hover:bg-green-800 transition cursor-pointer" />
+      </div>
+    </form>
+  </main>
+</body>
+</html>
