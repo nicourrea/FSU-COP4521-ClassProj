@@ -177,6 +177,55 @@ def delete_user(username):
     conn.close()
     return redirect('/accounts')
 
+# ========== Uploading Files (CSVS) ==========
+
+@app.route('/open_file', methods=['GET', 'POST'])
+@role_required('parent') 
+def open_file():
+    if request.method == 'POST':
+        uploaded_file = request.files.get('file')
+
+        # Safe filename validation
+        if not uploaded_file or not uploaded_file.filename or not uploaded_file.filename.lower().endswith('.csv'):
+            flash("Invalid file format. Please upload a CSV file.")
+            return redirect('/open_file')
+
+        try:
+            # Read CSV content
+            stream = io.StringIO(uploaded_file.stream.read().decode("UTF8"), newline=None)
+            csv_reader = csv.DictReader(stream)
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            # Insert each row into the expenses table
+            for row in csv_reader:
+                cur.execute("""
+                    INSERT INTO expenses (user_id, family_id, category, amount, date, expense_type)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (
+                    session['user_id'],
+                    session['family_id'],
+                    row['category'],
+                    float(row['amount']),
+                    row['date'],
+                    row['expense_type']
+                ))
+
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            flash("File uploaded and expenses saved successfully!")
+            return redirect('/open_expenses')
+
+        except Exception as e:
+            flash(f"Error processing file: {str(e)}")
+            return redirect('/open_file')
+
+    # GET request – just render upload page
+    return render_template('open_file.html')
+
 # ========== Show Expenses ==========
 
 @app.route('/open_expenses')
@@ -191,7 +240,167 @@ def open_expenses():
     categories = [row[0] for row in cur.fetchall()]
     cur.close()
     conn.close()
-    return render_template('open_expenses.html', categories=categories)  
+    return render_template('open_expenses.html', categories=categories)  # FIXED: pass as 'categories'
+ 
+ # ========== View Budget Page ==========
+
+@app.route('/open_budget')
+@login_required
+def open_budget():
+    return render_template('open_budget.html')
+
+# ========== New Budget Page (Parents Only) ==========
+
+@app.route('/create_table', methods=['GET', 'POST'])
+@role_required('parent')
+def create_table():
+    if request.method == 'POST':
+        category = request.form['category']
+        amount = float(request.form['budget'])
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        try:
+            cur.execute("""
+                INSERT INTO budget (family_id, category, amount)
+                VALUES (%s, %s, %s)
+            """, (session['family_id'], category, amount))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            flash(f"Error: {str(e)}", "error")
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('open_budget'))
+
+    return render_template('create_table.html')
+ 
+# ========== Delete Budget Page (Parents Only)==========
+
+@app.route('/delete_table', methods=['GET', 'POST'])
+@role_required('parent')
+def delete_table():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        category = request.form.get('department')  # Name from the dropdown
+        try:
+            cur.execute("""
+                DELETE FROM budget
+                WHERE family_id = %s AND category = %s
+            """, (session['family_id'], category))
+            conn.commit()
+            message = f"Category '{category}' deleted successfully."
+        except Exception as e:
+            conn.rollback()
+            message = f"Error deleting category: {str(e)}"
+        finally:
+            cur.close()
+            conn.close()
+
+        # Re-fetch the list of categories for the refreshed page
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT category FROM budget
+            WHERE family_id = %s
+            ORDER BY category
+        """, (session['family_id'],))
+        departments = [row[0] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+
+        return render_template('delete_table.html', departments=departments, message=message)
+
+    # On GET, just show the list of current categories
+    cur.execute("""
+        SELECT category FROM budget
+        WHERE family_id = %s
+        ORDER BY category
+    """, (session['family_id'],))
+    departments = [row[0] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
+
+    return render_template('delete_table.html', departments=departments)
+ 
+
+ # ========== For loading each tabs ==========
+
+@app.route('/view_category_expenses', methods=['POST'])
+@login_required
+def view_category_expenses():
+    data = request.get_json()
+
+    if not data or 'category' not in data:
+        return jsonify({'success': False, 'error': 'Missing category'})
+
+    category = data['category']
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id, date, expense_type, amount
+            FROM expenses
+            WHERE family_id = %s AND category = %s
+            ORDER BY date ASC
+        """, (session['family_id'], category))
+        rows = cur.fetchall()
+
+        column_names = [desc[0] for desc in cur.description] if cur.description else []
+        table_data = [dict(zip(column_names, row)) for row in rows]
+
+        return jsonify({
+            'success': True,
+            'column_names': column_names,
+            'table_data': table_data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cur.close()
+        conn.close()
+        
+# ========== Inline Edit Logic for Budget ==========        
+@app.route('/update_table', methods=['POST'])
+@login_required
+def update_table():
+    data = request.get_json()
+    table = data.get('table')  # Should be "expenses" or "budget"
+    row_id = data.get('row_id')
+    updates = data.get('updates')  # Dict of {column: newValue}
+
+    if not (table and row_id and updates):
+        return jsonify({'success': False, 'error': 'Missing data'})
+
+    if table not in ['expenses', 'budget']:
+        return jsonify({'success': False, 'error': 'Invalid table'})
+
+    conn = None
+    cur = None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        set_clause = ', '.join([f"{col} = %s" for col in updates])
+        values = list(updates.values()) + [row_id]
+        cur.execute(f"UPDATE {table} SET {set_clause} WHERE id = %s", values)
+
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 # ========== Editing/Deleting in Expenses ==========
 
@@ -222,6 +431,37 @@ def delete_expense():
         if conn:
             conn.close()
 
+# ========== Syncing the budget ==========
+
+@app.route('/sync_budget', methods=['POST'])
+@login_required
+def sync_budget():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT id, category, amount
+            FROM budget
+            WHERE family_id = %s
+            ORDER BY category ASC
+        """, (session['family_id'],))
+        rows = cur.fetchall()
+
+        column_names = [desc[0] for desc in cur.description] if cur.description else []
+        table_data = [dict(zip(column_names, row)) for row in rows]
+
+        return jsonify({
+            'success': True,
+            'column_names': column_names,
+            'table_data': table_data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cur.close()
+        conn.close()
+ 
 # ========== Adding Expense With Category (Parents Only) ==========
 
 @app.route('/add_expense', methods=['GET', 'POST'])
@@ -298,7 +538,7 @@ def submit_expense():
 
     categories = get_budget_categories(session['family_id'])
     return render_template('submit_expense.html', categories=categories)
-
+ 
  # ========== Tab For Child Only Expenses (Parents Only) ==========
 
 @app.route('/view_child_expenses', methods=['POST'])
@@ -340,7 +580,7 @@ def view_child_expenses():
             cur.close()
         if conn:
             conn.close()
-            
+        
 # ========== Main ==========
 
 if __name__ == '__main__':
