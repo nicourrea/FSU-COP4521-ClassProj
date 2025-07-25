@@ -107,3 +107,47 @@ def get_budget_categories(family_id):
     except Exception as e:
         print("Error fetching budget categories:", e)
         return []
+
+#===========ADMIN==============
+
+def ensure_global_admin():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # Check if finadmin exists
+    cur.execute("SELECT * FROM users WHERE id = 0")
+    admin = cur.fetchone()
+    if not admin:
+        from werkzeug.security import generate_password_hash
+        hashed_password = generate_password_hash("54321")
+        cur.execute("""
+            INSERT INTO users (id, username, password, role, family_id)
+            VALUES (0, 'finadmin', %s, 'parent', 0)
+        """, (hashed_password,))
+        conn.commit()
+    cur.close()
+    conn.close()
+
+def get_monthly_expense_totals_by_family(family_id):
+    """
+    Returns a list of tuples: (month_number (1-12), total_amount) for current year.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT 
+                EXTRACT(MONTH FROM date)::INT AS month,
+                SUM(amount)::FLOAT
+            FROM expenses
+            WHERE family_id = %s AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            GROUP BY month
+            ORDER BY month
+        """, (family_id,))
+        rows = cur.fetchall()
+        return rows  # list of (month, total)
+    except Exception as e:
+        print("Error fetching monthly totals:", e)
+        return []
+    finally:
+        cur.close()
+        conn.close()
