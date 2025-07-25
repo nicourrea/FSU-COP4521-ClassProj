@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>All Expenses for Family {{ family_id }}</title>
+</head>
+<body>
+    <h1>All Expenses for Family {{ family_id }}</h1>
+
+    {% if monthly_totals %}
+        <h3>Monthly Totals (Current Year)</h3>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for month, total in monthly_totals %}
+                    <tr>
+                        <td>{{ month }}</td>
+                        <td>${{ '%.2f'|format(total) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+    {% endif %}
+
+    <form method="get" action="{{ url_for('admin_family_expenses', family_id=family_id) }}">
+        <label for="sort_by">Sort by:</label>
+        <select id="sort_by" name="sort_by" onchange="this.form.submit()">
+            <option value="category" {% if current_sort == 'category' %}selected{% endif %}>Category</option>
+            <option value="date" {% if current_sort == 'date' %}selected{% endif %}>Date</option>
+            <option value="amount" {% if current_sort == 'amount' %}selected{% endif %}>Amount</option>
+        </select>
+    </form>
+
+    <table border="1" style="margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Expense Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in expenses %}
+            <tr>
+                <td>{{ e[0] }}</td>
+                <td>${{ '%.2f'|format(e[1]) }}</td>
+                <td>{{ e[2] }}</td>
+                <td>{{ e[3] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <a href="{{ url_for('view_family_members', family_id=family_id) }}">Back to Family Overview</a>
+</body>
+</html>

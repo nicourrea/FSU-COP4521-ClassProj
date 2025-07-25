@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Families</title>
+</head>
+<body>
+    <h1>List of All Families</h1>
+
+    <form method="GET" action="{{ url_for('view_families') }}">
+        <input
+            type="text"
+            name="search"
+            placeholder="Search by Family ID"
+            value="{{ search_query|default('') }}"
+        />
+        <button type="submit">Search</button>
+        {% if search_query %}
+        <a href="{{ url_for('view_families') }}">Clear</a>
+        {% endif %}
+    </form>
+
+    <table border="1">
+        <tr>
+            <th>Family ID</th>
+            <th>Actions</th>
+        </tr>
+        {% if families %}
+            {% for fam_id in families %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('view_family_members', family_id=fam_id) }}">
+                        {{ fam_id }}
+                    </a>
+                </td>
+                <td>
+                    <form action="{{ url_for('delete_family', family_id=fam_id) }}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete Family {{ fam_id }} and all its data?');">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="2">No families found.</td></tr>
+        {% endif %}
+    </table>
+
+    <br>
+    <a href="{{ url_for('admin_panel') }}">Back to Admin Panel</a>
+</body>
+</html>
+

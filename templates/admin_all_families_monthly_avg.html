@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Average Monthly Expenses - All Families</title>
+</head>
+<body>
+    <h1>Average Monthly Expenses for All Families (Current Year)</h1>
+
+    <table border="1" cellpadding="5" cellspacing="0" style="width: 600px;">
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Average Expense ($)</th>
+                <th>Graph</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for month, avg in monthly_avg %}
+            <tr>
+                <td>{{ month }}</td>
+                <td>{{ '%.2f'|format(avg) }}</td>
+                <td>
+                    <div style="background-color: #4A90E2; height: 20px; width: {{ (avg / max_avg) * 100 }}%;"></div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <a href="{{ url_for('admin_panel') }}">Back to Admin Panel</a>
+</body>
+</html>

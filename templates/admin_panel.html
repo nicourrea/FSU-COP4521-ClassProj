@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Global Admin Panel</title>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <form action="{{ url_for('view_families') }}" method="get">
+        <button type="submit">View Families</button>
+    </form>
+    
+
+    <form action="{{ url_for('all_families_monthly_avg') }}" method="get" style="margin-top: 20px;">
+        <button type="submit">Show Average Monthly Expenses Across All Families</button>
+    </form>
+
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+</body>
+</html>
