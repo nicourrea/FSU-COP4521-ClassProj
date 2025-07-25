@@ -4,10 +4,11 @@ from functools import wraps
 import random
 import io
 import csv
-from db import get_db_connection, insert_user, get_user_by_username, get_budget_categories
+from db import get_db_connection, insert_user, get_user_by_username, get_budget_categories, ensure_global_admin, get_monthly_expense_totals_by_family
 
 app = Flask(__name__)
 app.secret_key = 'COP4521'
+ensure_global_admin()
 
 # ========== Login Required Decorator ==========
 def login_required(f):
@@ -95,8 +96,28 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = get_user_by_username(username)
 
+        # Special case for finadmin
+        if username == 'finadmin':
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id, password, role, family_id FROM users WHERE username = %s", (username,))
+            admin_user = cur.fetchone()
+            cur.close()
+            conn.close()
+            if admin_user and check_password_hash(admin_user[1], password):
+                session['user_id'] = admin_user[0]
+                session['username'] = username
+                session['role'] = 'admin'   # special admin role
+                session['family_id'] = admin_user[3]
+                flash("Logged in as global admin.")
+                return redirect('/admin_panel')
+            else:
+                flash("Invalid credentials.")
+                return redirect('/login')
+
+        # Normal user login
+        user = get_user_by_username(username)
         if user and check_password_hash(user[2], password):
             session['user_id'] = user[0]
             session['username'] = user[1]
@@ -580,6 +601,313 @@ def view_child_expenses():
             cur.close()
         if conn:
             conn.close()
+
+#============= Admin Related ===============
+
+
+# ========== Admin Access Decorator ==========
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('role') != 'admin':
+            flash("Admin access required.")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ========== Admin Panel Route ==========
+@app.route('/admin_panel')
+@admin_required
+def admin_panel():
+    return render_template('admin_panel.html')
+
+# ========== View Families Route ==========
+@app.route('/admin/families')
+@admin_required
+def view_families():
+    search_query = request.args.get('search', '').strip()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if search_query:
+            try:
+                family_id_search = int(search_query)
+                cur.execute("""
+                    SELECT DISTINCT family_id
+                    FROM users
+                    WHERE family_id = %s AND family_id != 0
+                    ORDER BY family_id
+                """, (family_id_search,))
+            except ValueError:
+                families = []
+            else:
+                families = [row[0] for row in cur.fetchall()]
+        else:
+            cur.execute("""
+                SELECT DISTINCT family_id
+                FROM users
+                WHERE family_id != 0
+                ORDER BY family_id
+            """)
+            families = [row[0] for row in cur.fetchall()]
+
+        return render_template('admin_families.html', families=families, search_query=search_query)
+    except Exception as e:
+        flash(f"Error loading families: {str(e)}")
+        return redirect('/admin_panel')
+    finally:
+        cur.close()
+        conn.close()
+
+# ========== View Family Members Route ==========
+@app.route('/admin/family/<int:family_id>')
+@admin_required
+def view_family_members(family_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT id, username, role, created_at 
+        FROM users 
+        WHERE family_id = %s AND username != 'finadmin'
+    """, (family_id,))
+    members = cur.fetchall()
+    
+    cur.execute("""
+        SELECT category, amount
+        FROM budget
+        WHERE family_id = %s
+    """, (family_id,))
+    budgets = cur.fetchall()
+    
+    cur.execute("""
+        SELECT category, amount, date, expense_type
+        FROM expenses
+        WHERE family_id = %s
+        ORDER BY date DESC
+        LIMIT 10
+    """, (family_id,))
+    expenses = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return render_template(
+        'admin_family_details.html',
+        family_id=family_id,
+        members=members,
+        budgets=budgets,
+        expenses=expenses
+    )
+
+# ========== Delete User Route =========================
+@app.route('/admin/delete_user/<int:user_id>/<int:family_id>', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id, family_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            flash("User not found.")
+        elif user[0] == 'finadmin':
+            flash("You cannot delete the global admin.")
+        else:
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+            conn.commit()
+            flash("User deleted successfully.")
+
+            # Check if any users remain in this family
+            cur.execute("SELECT COUNT(*) FROM users WHERE family_id = %s", (family_id,))
+            remaining = cur.fetchone()[0]
+
+            if remaining == 0:
+                return redirect(url_for('view_families'))  # No members left → go to families list
+    except Exception as e:
+        flash(f"Error deleting user: {str(e)}")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for('view_family_members', family_id=family_id))  # Still has members
+
+# ========== Delete Family Route ==========
+@app.route('/admin/delete_family/<int:family_id>', methods=['POST'])
+@admin_required
+def delete_family(family_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT COUNT(*) FROM users WHERE family_id = %s", (family_id,))
+        count = cur.fetchone()[0]
+        if count == 1:
+            cur.execute("SELECT username FROM users WHERE family_id = %s", (family_id,))
+            sole_user = cur.fetchone()
+            if sole_user and sole_user[0] == 'finadmin':
+                flash("You cannot delete the finadmin's family.")
+                return redirect(url_for('view_families'))
+
+        # Delete all users and expenses tied to the family 
+        cur.execute("DELETE FROM users WHERE family_id = %s", (family_id,))
+        cur.execute("DELETE FROM expenses WHERE family_id = %s", (family_id,))
+        cur.execute("DELETE FROM budget WHERE family_id = %s", (family_id,))
+        conn.commit()
+        flash("Family deleted successfully.")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error deleting family: {str(e)}")
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for('view_families'))
+
+# ========== Reset Password Route ==========
+@app.route('/admin/reset_password/<int:user_id>', methods=['GET', 'POST'])
+def reset_password(user_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        hashed_password = generate_password_hash(new_password)
+        cur.execute("UPDATE users SET password = %s WHERE id = %s", (hashed_password, user_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Password successfully reset.', 'success')
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT family_id FROM users WHERE id = %s", (user_id,))
+        family_id = cur.fetchone()[0]
+        cur.close()
+        conn.close()
+
+        return redirect(url_for('view_family_members', family_id=family_id))
+
+    else:
+        cur.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+        return render_template('admin_reset_password.html', user_id=user_id, username=user[0])
+
+
+# ========== View Family Expenses Route ==========
+@app.route('/admin/family/<int:family_id>/expenses')
+def admin_family_expenses(family_id):
+    sort_by = request.args.get('sort_by', 'date')
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(f"""
+            SELECT category, amount, date, expense_type
+            FROM expenses
+            WHERE family_id = %s
+            ORDER BY {sort_by}
+        """, (family_id,))
+        expenses = cur.fetchall()
+
+        cur.execute("""
+            SELECT TO_CHAR(date, 'YYYY-MM') AS month, SUM(amount)
+            FROM expenses
+            WHERE family_id = %s AND EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            GROUP BY TO_CHAR(date, 'YYYY-MM')
+            ORDER BY month
+        """, (family_id,))
+        monthly_totals_rows = cur.fetchall()
+
+        monthly_totals_dict = {}
+        for month, total in monthly_totals_rows:
+            monthly_totals_dict[month] = total
+
+        if monthly_totals_rows:
+            current_year = monthly_totals_rows[0][0].split('-')[0]
+        else:
+            current_year = "2025"
+
+        all_months = []
+        for m in range(1, 13):
+            month_str = str(m)
+            if len(month_str) == 1:
+                month_str = '0' + month_str
+            all_months.append(f"{current_year}-{month_str}")
+
+        monthly_totals = []
+        for month in all_months:
+            total = monthly_totals_dict.get(month, 0)
+            monthly_totals.append((month, total))
+
+        return render_template(
+            'admin_family_expenses.html',
+            family_id=family_id,
+            expenses=expenses,
+            current_sort=sort_by,
+            monthly_totals=monthly_totals
+        )
+    except Exception as e:
+        flash(f"Error loading expenses: {e}")
+        return redirect('/admin_panel')
+    finally:
+        cur.close()
+        conn.close()
+
+# ========== All Families Monthly Average Route ==========
+@app.route('/admin/all_families_monthly_avg')
+@admin_required
+def all_families_monthly_avg():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT family_id, TO_CHAR(date, 'YYYY-MM') AS month, SUM(amount) AS total
+            FROM expenses
+            WHERE EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            GROUP BY family_id, month
+            ORDER BY month, family_id
+        """)
+        rows = cur.fetchall()  # (family_id, month, total)
+
+        month_to_totals = {}
+        families = set()
+
+        for family_id, month, total in rows:
+            families.add(family_id)
+            month_to_totals.setdefault(month, []).append(total)
+
+        total_families = len(families) or 1  # avoid divide by zero
+
+        if rows:
+            current_year = rows[0][1].split('-')[0]
+        else:
+            current_year = "2025"
+
+        all_months = [f"{current_year}-{str(m).rjust(2, '0')}" for m in range(1, 13)]
+
+        monthly_avg = []
+        for month in all_months:
+            totals = month_to_totals.get(month, [])
+            avg = sum(totals) / total_families if totals else 0
+            monthly_avg.append((month, avg))
+
+        # For bar chart scaling
+        max_avg = max((avg for _, avg in monthly_avg), default=1)
+
+        return render_template(
+            'admin_all_families_monthly_avg.html',
+            monthly_avg=monthly_avg,
+            max_avg=max_avg
+        )
+    except Exception as e:
+        flash(f"Error calculating averages: {e}")
+        return redirect('/admin_panel')
+    finally:
+        cur.close()
+        conn.close()
         
 # ========== Main ==========
 
