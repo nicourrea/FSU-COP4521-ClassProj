@@ -5,9 +5,12 @@ import random
 import io
 import csv
 from db import get_db_connection, insert_user, get_user_by_username, get_budget_categories
+from admin import admin_bp, is_hardcoded_admin
 
 app = Flask(__name__)
 app.secret_key = 'COP4521'
+
+app.register_blueprint(admin_bp)
 
 # ========== Login Required Decorator ==========
 def login_required(f):
@@ -95,6 +98,16 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+	
+        # Check for hardcoded global admin first
+        if is_hardcoded_admin(username, password):
+            session['user_id'] = -1  # Special ID for hardcoded admin
+            session['username'] = username
+            session['role'] = 'admin'
+            session['family_id'] = None  # NULL for admin
+            flash("Logged in as global admin.")
+            return redirect(url_for('admin.admin_dashboard'))
+        
         user = get_user_by_username(username)
 
         if user and check_password_hash(user[2], password):
@@ -103,7 +116,10 @@ def login():
             session['role'] = user[3]
             session['family_id'] = user[4]
             flash("Logged in successfully.")
-            return redirect('/')
+            if user[3] == 'admin':
+                return redirect(url_for('admin.admin_dashboard'))
+            else:
+                return redirect('/')
 
         flash("Invalid username or password.")
     return render_template('login.html')
