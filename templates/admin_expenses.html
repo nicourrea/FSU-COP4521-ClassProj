@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expenses for Family {{ family_id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer; /* clickable headers for sorting */
+        }
+
+        th {
+            background-color: #ddd;
+            user-select: none;
+            position: relative;
+        }
+
+        th.sorted-asc::after {
+            content: " ▲";
+            position: absolute;
+            right: 8px;
+        }
+
+        th.sorted-desc::after {
+            content: " ▼";
+            position: absolute;
+            right: 8px;
+        }
+
+        a {
+            display: inline-block;
+            margin-bottom: 15px;
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation link back to dashboard -->
+    <a href="{{ url_for('admin.admin_dashboard') }}">&larr; Back to Admin Dashboard</a>
+
+    <h2>Expenses for Family {{ family_id }}</h2>
+
+    {% if expenses %}
+    <table id="expenses-table">
+        <thead>
+            <tr>
+                <th data-type="number">Expense ID</th>
+                <th data-type="number">User ID</th>
+                <th data-type="string">Category</th>
+                <th data-type="number">Amount</th>
+                <th data-type="date">Date</th>
+                <th data-type="string">Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in expenses %}
+            <tr>
+                <td>{{ exp[0] }}</td>
+                <td>{{ exp[1] }}</td>
+                <td>{{ exp[2] }}</td>
+                <td>{{ "%.2f"|format(exp[3]) }}</td>
+                <td>{{ exp[4] }}</td>
+                <td>{{ exp[5] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No expenses found for this family.</p>
+    {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const table = document.getElementById('expenses-table');
+    if (!table) return;
+
+    // Helper: grab text from a table cell
+    const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+
+    // Sort logic based on data type
+    const createComparer = (idx, type, asc) => (a, b) => {
+        let v1 = getCellValue(a, idx);
+        let v2 = getCellValue(b, idx);
+
+        if (type === "number") {
+            v1 = parseFloat(v1) || 0;
+            v2 = parseFloat(v2) || 0;
+        } else if (type === "date") {
+            v1 = new Date(v1);
+            v2 = new Date(v2);
+        } else {
+            v1 = v1.toLowerCase();
+            v2 = v2.toLowerCase();
+        }
+
+        return asc ? v1 > v2 ? 1 : v1 < v2 ? -1 : 0 : v1 < v2 ? 1 : v1 > v2 ? -1 : 0;
+    };
+
+    // Set up sorting behavior on each table header
+    Array.from(table.querySelectorAll('th')).forEach((th, idx) => {
+        let ascending = true;
+
+        th.addEventListener('click', () => {
+            const type = th.dataset.type;
+            const tbody = table.tBodies[0];
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Clear previous sort indicators
+            table.querySelectorAll('th').forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+
+            rows.sort(createComparer(idx, type, ascending));
+            rows.forEach(row => tbody.appendChild(row));
+
+            th.classList.toggle('sorted-asc', ascending);
+            th.classList.toggle('sorted-desc', !ascending);
+
+            ascending = !ascending; // Flip direction for next click
+        });
+    });
+});
+</script>
+
+</body>
+</html>

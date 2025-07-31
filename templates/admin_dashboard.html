@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+        }
+        #families {
+            width: 30%;
+            border-right: 1px solid #ccc;
+            padding: 20px;
+        }
+        #members {
+            width: 70%;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        tr.family-id-row:hover {
+            background-color: #eee;
+            cursor: pointer;
+        }
+        button {
+            padding: 4px 8px;
+            margin: 2px;
+        }
+        #logout {
+            position: fixed;
+            top: 10px;
+            right: 20px;
+        }
+        #view-expenses-btn, #export-csv-btn {
+            margin-top: 10px;
+            padding: 6px 12px;
+            font-size: 1em;
+            display: block;
+            width: 100%;
+        }
+        #families > button {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Logout Button -->
+    <a href="{{ url_for('logout') }}" id="logout">
+        <button>Logout</button>
+    </a>
+
+    <!-- Left Column: Families List -->
+    <div id="families">
+        <h2>Families</h2>
+        <table>
+            <thead><tr><th>Family ID</th></tr></thead>
+            <tbody>
+                {% for family in families %}
+                <tr class="family-id-row" data-family-id="{{ family[0] }}">
+                    <td>{{ family[0] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Export Button -->
+        <button id="export-csv-btn">Export All Data to CSV</button>
+    </div>
+
+    <!-- Right Column: Family Members -->
+    <div id="members">
+        <h2>Family Members</h2>
+        <table id="members-table">
+            <thead>
+                <tr><th>ID</th><th>Username</th><th>Role</th></tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3">Click a Family ID to see members.</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Expenses Button -->
+        <button id="view-expenses-btn" disabled>View Family Expenses</button>
+    </div>
+
+<script>
+let selectedFamilyId = null;
+
+document.querySelectorAll('.family-id-row').forEach(row => {
+    row.addEventListener('click', () => {
+        selectedFamilyId = row.getAttribute('data-family-id');
+
+        document.querySelectorAll('.family-id-row').forEach(r => r.style.backgroundColor = '');
+        row.style.backgroundColor = '#ddd';
+
+        fetch(`/admin/family_members/${selectedFamilyId}`)
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.querySelector('#members-table tbody');
+                tbody.innerHTML = '';
+
+                if (data.members.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">No members found.</td></tr>';
+                } else {
+                    data.members.forEach(m => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${m.id}</td>
+                            <td>${m.username}</td>
+                            <td>${m.role}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                document.getElementById('view-expenses-btn').disabled = false;
+            })
+            .catch(err => alert('Could not load members: ' + err));
+    });
+});
+
+document.getElementById('view-expenses-btn').addEventListener('click', () => {
+    if (!selectedFamilyId) {
+        alert('Pick a family first.');
+        return;
+    }
+    window.location.href = `/admin/family_expenses/${selectedFamilyId}`;
+});
+
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+    fetch('/admin/export_all_csv')
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'all_data_export.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        })
+        .catch(error => alert('Export error: ' + error.message));
+});
+</script>
+
+</body>
+</html>
