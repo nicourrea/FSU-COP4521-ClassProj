@@ -12,13 +12,19 @@ Authentication: Secure session-based login/logout using Flask-Login.
 Expense Tracking: Add, edit, and categorize expenses.
 Budget Management: Parents can set budgets; children can view and log expenses.
 CSV Import: Bulk import expenses via CSV uploads.
+Hardcoded Admin Role: view all families/users and export all expense data to CSV.
 
 Technology Stack
 
-Backend Libraries: Python, Flask, psycopg2, werkzeug (security), functools, random, io, csv, os, dotenv
+Backend Libraries: Python, Flask, psycopg2, werkzeug (security), functools, random, io, csv, os, dotenv, multiprocessing
 Database: PostgreSQL
 Frontend: HTML5, Jinja2 Templates
 File Handling: Python’s csv module for imports
+
+Non-Obvious Instructions:
+
+Admin username: "admin"
+Admin password: "admin123"
 
 Workload Breakdown
 
@@ -38,4 +44,5 @@ JavaScript and HTML layers to provide a seamless, interactive user experience.
 Isiaq - Implemented dynamic table template creation and deletion, complete with dedicated
 Flask routes.
 
-Joseph - Implemented the bulk import of expenses via CSV upload.
+Joseph - Implemented the bulk import of expenses via CSV upload, and developed the admin role, 
+including admin.py and all associated HTML templates.
