@@ -37,3 +37,5 @@ JavaScript and HTML layers to provide a seamless, interactive user experience.
 
 Isiaq - Implemented dynamic table template creation and deletion, complete with dedicated
 Flask routes.
+
+Joseph - Implemented the bulk import of expenses via CSV upload.
